@@ -9,10 +9,16 @@
 #  - XS strand tag (--outSAMstrandField intronMotif) for unstranded libraries.
 #  - MD tag, read group = sample, and GeneCounts (used to infer strandedness).
 #
+# MISMATCH overrides the mismatch filter. The default caps mismatches at 4% of
+# the read length. Parabricks can only cap them relative to the mapped length
+# (STAR --outFilterMismatchNoverLmax), so the GPU benchmark sets
+# MISMATCH="--outFilterMismatchNoverLmax 0.04" for every arm.
+#
 # Usage: star_align.sh <index_dir> <sample> <R1.fq.gz> <R2.fq.gz> <out_dir> [threads]
 set -euo pipefail
 IDX=$1 SAMPLE=$2 R1=$3 R2=$4 OUT=$5 THREADS=${6:-16}
 STAR=${STAR:-STAR}
+MISMATCH=${MISMATCH:---outFilterMismatchNoverReadLmax 0.04}
 mkdir -p "$OUT"
 "$STAR" --version > "$OUT/star_version.txt"
 
@@ -28,7 +34,7 @@ mkdir -p "$OUT"
   --outSAMstrandField intronMotif \
   --quantMode GeneCounts \
   --outFilterMultimapNmax 20 \
-  --outFilterMismatchNmax 999 --outFilterMismatchNoverReadLmax 0.04 \
+  --outFilterMismatchNmax 999 $MISMATCH \
   --alignSJoverhangMin 8 --alignSJDBoverhangMin 1 \
   --alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000
 

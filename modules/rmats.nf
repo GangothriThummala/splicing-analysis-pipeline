@@ -89,7 +89,7 @@ process RMATS_STAT {
     path post
 
     output:
-    path "${contrast}"
+    tuple val(contrast), path("${contrast}")
 
     script:
     def model = paired == 'yes' ? '--paired-stats' : ''
@@ -108,5 +108,24 @@ process RMATS_STAT {
                  \$c != "NA" { n++ } END { exit n > 0 ? 0 : 1 }' ${contrast}/SE.MATS.JC.txt \\
         || { echo "No p-values in ${contrast}/SE.MATS.JC.txt" >&2; exit 1; }
     rm -rf ${contrast}/tmp
+    """
+}
+
+// Label-blind coverage and PSI filters, then FDR recomputed on the events that
+// pass (bin/rmats_filter.py). The rMATS tables above are left as they are.
+process RMATS_FILTER {
+    tag "${contrast}"
+    publishDir "${params.outdir}/rmats/filtered", mode: 'copy'
+
+    input:
+    tuple val(contrast), path(contrast_dir, stageAs: 'in/*')
+
+    output:
+    path "${contrast}"
+
+    script:
+    """
+    rmats_filter.py ${contrast_dir} ${contrast} --min-reads ${params.filter_min_reads} \\
+        --min-psi ${params.filter_min_psi} --fdr ${params.filter_fdr} --min-dpsi ${params.filter_min_dpsi}
     """
 }

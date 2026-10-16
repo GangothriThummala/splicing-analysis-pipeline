@@ -36,6 +36,7 @@ flowchart LR
     STAR --> PREP["rMATS --task prep (per BAM)"]
     PREP --> POST["rMATS --task post (per virus x tissue)"]
     POST --> STAT["rMATS --task stat (per contrast)"]
+    STAT --> FILTER["coverage + PSI filter, FDR recomputed"]
 ```
 
 FastQC runs on the raw and trimmed reads for QC.
@@ -109,6 +110,17 @@ rMATS then runs in three stages:
 2. **post**, once over all samples. This defines one shared event set, so an event ID means
    the same event in every contrast.
 3. **stat**, once per row of `contrasts.csv`.
+4. **filter** (`bin/rmats_filter.py`), once per contrast. Events are kept when they have a
+   p-value, at least 10 junction reads per sample on average, and a mean PSI between 0.05
+   and 0.95. Both filters pool all samples of the contrast and ignore the group labels, so
+   they do not bias the test. FDR (Benjamini-Hochberg) is then recomputed over the events
+   that pass. An event is called significant at FDR < 0.05 and |ΔPSI| ≥ 0.1. All four
+   thresholds are parameters (`--filter_min_reads`, `--filter_min_psi`, `--filter_fdr`,
+   `--filter_min_dpsi`).
+
+When the same animals are sampled in both groups (timepoints), set `paired` to `yes`.
+rMATS's unpaired model treats every sample as independent and gives far too many calls
+on such data, even after the timepoint labels are shuffled within animals.
 
 For paired contrasts, both groups keep only the animals present in both, in the same order.
 Animals with a sample in only one group are dropped. `rmats/contrasts.tsv` lists the samples
@@ -130,6 +142,7 @@ Outputs:
 | `rmats/read_outcomes.tsv` | rMATS prep: reads used and reasons for dropping the rest, per sample |
 | `rmats/post/` | The shared event set (`fromGTF.*`) and counts for all samples |
 | `rmats/contrasts/<b1>_vs_<b2>/` | rMATS results per contrast (`*.MATS.JC.txt`, `*.MATS.JCEC.txt`) |
+| `rmats/filtered/<b1>_vs_<b2>/` | Events that pass the filter, with `MeanReads`, `MeanPSI` and `FDR_filtered` (`*.filtered.txt`), and counts per event type (`summary.tsv`) |
 | `pipeline_info/` | Nextflow timeline, resource report and trace |
 
 The workflow uses at most 48 CPUs in total (`--max_cpus`) and 14 threads per STAR task
@@ -155,6 +168,7 @@ junctions are identical to the workflow's.
 | Trimming, QC, alignment (Nextflow) | done |
 | Strandedness and read-length checks | done |
 | rMATS prep / post / stat (shared events, paired stats) | done, tested on a fixture |
+| Event filter and FDR recomputation | done, tested on a fixture |
 | Single-end samples | not yet supported (the workflow stops if `fastq_2` is empty) |
 | GPU alignment (NVIDIA Parabricks) | planned, to compare speed and concordance with the CPU run |
 | Variant calling, then AlphaGenome | later |

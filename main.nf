@@ -2,6 +2,7 @@
 // Splicing analysis pipeline:
 //   FastQC (raw) -> fastp + STAR -> strandedness and read-length checks -> MultiQC
 //   -> rMATS prep (per BAM) -> post (all BAMs, one event set) -> stat (per contrast)
+//   -> filter (coverage and PSI, FDR recomputed)
 //
 //   nextflow run main.nf -params-file datasets/<virus>/params.yaml \
 //       --raw_dir <fastq_dir> --star_index <index_dir> --gtf <annotation.gtf> --outdir <outdir>
@@ -15,7 +16,7 @@ include { TRIM_ALIGN   } from './modules/trim_align'
 include { STRANDEDNESS } from './modules/strandedness'
 include { MULTIQC      } from './modules/multiqc'
 include { READ_LENGTH  } from './modules/read_length'
-include { RMATS_DESIGN; RMATS_PREP; RMATS_POST; RMATS_STAT } from './modules/rmats'
+include { RMATS_DESIGN; RMATS_PREP; RMATS_POST; RMATS_STAT; RMATS_FILTER } from './modules/rmats'
 
 workflow {
     def required = ['dataset', 'samplesheet', 'contrasts', 'group_column', 'pair_column', 'gtf', 'outdir']
@@ -89,4 +90,5 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { r -> tuple(r.contrast, r.paired, r.g1_indices, r.g2_indices) }
     RMATS_STAT(contrasts, RMATS_POST.out.post)
+    RMATS_FILTER(RMATS_STAT.out)
 }

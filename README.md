@@ -135,6 +135,14 @@ Outputs:
 The workflow uses at most 48 CPUs in total (`--max_cpus`) and 14 threads per STAR task
 (`--star_threads`). `-resume` skips samples that are already done.
 
+To start from a finished alignment instead, pass `--aligned_dir <dir>`, the `--outdir` of an
+earlier run. The workflow then reads the BAMs, gene counts, FastQC and fastp reports from
+`<dir>/align/`, and `--raw_dir` and `--star_index` are not needed. The run stops at startup
+if any expected file is missing.
+
+To resume a run that is not the most recent one, pass its session ID to `-resume`. Nextflow
+26.04.6 ignores a run name given to `-resume` and resumes the latest run.
+
 `bin/align_all.sh` runs the same steps without Nextflow. Its BAM records, gene counts and
 junctions are identical to the workflow's.
 

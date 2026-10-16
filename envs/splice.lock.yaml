@@ -19,7 +19,6 @@ dependencies:
   - bioconductor-genomicranges=1.62.1=r45h01b2380_0
   - bioconductor-iranges=2.44.0=r45h01b2380_1
   - bioconductor-matrixgenerics=1.22.0=r45hdfd78af_1
-  - bioconductor-pairadise=1.26.0=r45hdfd78af_0
   - bioconductor-s4arrays=1.10.1=r45h01b2380_0
   - bioconductor-s4vectors=0.48.1=r45h262fe30_0
   - bioconductor-seqinfo=1.0.0=r45hdfd78af_0

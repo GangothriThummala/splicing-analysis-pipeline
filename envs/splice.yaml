@@ -9,9 +9,10 @@ dependencies:
   - rmats=4.4.0
   - trimmomatic=0.39
   - fastp=1.3.7          # adapter trimming
-  # rMATS --paired-stats runs an R script that needs PAIRADISE
+  # rMATS --paired-stats runs an R script that needs PAIRADISE. Not the Bioconductor
+  # package (a different API); install Xinglab/PAIRADISE v1.0.0 with
+  # envs/install_pairadise.sh after creating the env. These are its dependencies.
   - r-base=4.5
-  - bioconductor-pairadise=1.26.0
   - r-doparallel
   - r-foreach
   - r-iterators

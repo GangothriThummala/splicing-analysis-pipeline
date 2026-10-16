@@ -5,8 +5,8 @@ events. It is set up for four macaque (*Macaca mulatta*) viral-infection dataset
 SARS-CoV-2, H5N1, mpox; H5N1 includes cynomolgus). It works on any dataset through config
 files, with no script edits per dataset.
 
-> **Status: under construction.** The environment and the Nextflow workflow up to alignment
-> and QC are in place. The rMATS steps are not written yet. See [Status](#status).
+> **Status: under construction.** The Nextflow workflow runs from raw reads to rMATS
+> results. It has been tested on a small fixture; full dataset runs are next. See [Status](#status).
 
 ## Why this exists
 An earlier pipeline for these datasets was hand-edited for each dataset and silently lost
@@ -59,10 +59,15 @@ Create the environment from the pinned lock file:
 ```bash
 conda env create -f envs/splice.lock.yaml   # exact versions
 conda activate splice
+envs/install_pairadise.sh                   # PAIRADISE for rMATS --paired-stats
 ```
 
-Key tools and versions: STAR 2.7.11b, rMATS-turbo 4.4.0 with PAIRADISE 1.26.0 (needed by
-`--paired-stats`), fastp 1.3.7, FastQC, samtools, MultiQC, seqkit, pigz.
+Key tools and versions: STAR 2.7.11b, rMATS-turbo 4.4.0, fastp 1.3.7, FastQC, samtools,
+MultiQC, seqkit, pigz, and PAIRADISE v1.0.0 from
+[Xinglab/PAIRADISE](https://github.com/Xinglab/PAIRADISE) (pinned by commit).
+
+Do not use Bioconductor's `PAIRADISE` package instead. It has a different interface, so
+rMATS's paired model fails with it, but rMATS still exits normally and writes p-values of NA.
 
 ## Reference
 
@@ -89,20 +94,42 @@ Run the workflow from the repository root, inside the `splice` environment:
 
 ```bash
 nextflow run main.nf -params-file datasets/<virus>/params.yaml \
-    --raw_dir <raw_fastq_dir> --star_index <star_index> --outdir <outdir> [-resume]
+    --raw_dir <raw_fastq_dir> --star_index <star_index> --gtf <annotation.gtf> \
+    --outdir <outdir> [-resume]
 ```
 
 For each sample it runs FastQC on the raw reads, then fastp and `bin/star_align.sh` (STAR
 2-pass, with the same settings for every sample) in one task, so trimmed reads are deleted
-as soon as the sample is aligned. It then infers strandedness for the whole dataset and
-writes a MultiQC report. Outputs:
+as soon as the sample is aligned. It then checks strandedness and the raw read length across
+the whole dataset, and writes a MultiQC report.
+
+rMATS then runs in three stages:
+
+1. **prep**, once per BAM.
+2. **post**, once over all samples. This defines one shared event set, so an event ID means
+   the same event in every contrast.
+3. **stat**, once per row of `contrasts.csv`.
+
+For paired contrasts, both groups keep only the animals present in both, in the same order.
+Animals with a sample in only one group are dropped. `rmats/contrasts.tsv` lists the samples
+used and the animals dropped. The run fails in these cases:
+
+- samples disagree on strandedness or raw read length;
+- any read is rejected for length;
+- the paired model fails, or a contrast has no p-values.
+
+Outputs:
 
 | Path under `<outdir>` | Contents |
 |---|---|
 | `align/star/<sample>/` | Sorted, indexed BAM, STAR logs, gene counts, junctions |
 | `align/fastp/`, `align/fastqc_raw/` | Trimming and raw-read QC reports |
 | `qc/strandedness.tsv`, `qc/lib_type.txt` | Per-sample strand fractions and the rMATS `--libType` |
+| `qc/read_length.tsv` | Raw read length per FASTQ (from FastQC), used as `--readLength` |
 | `qc/<dataset>_multiqc.html` | QC report over FastQC, fastp and STAR |
+| `rmats/read_outcomes.tsv` | rMATS prep: reads used and reasons for dropping the rest, per sample |
+| `rmats/post/` | The shared event set (`fromGTF.*`) and counts for all samples |
+| `rmats/contrasts/<b1>_vs_<b2>/` | rMATS results per contrast (`*.MATS.JC.txt`, `*.MATS.JCEC.txt`) |
 | `pipeline_info/` | Nextflow timeline, resource report and trace |
 
 The workflow uses at most 48 CPUs in total (`--max_cpus`) and 14 threads per STAR task
@@ -118,10 +145,9 @@ junctions are identical to the workflow's.
 | Environment (`envs/`) | done |
 | STAR index build (`bin/build_star_index.sh`) | done |
 | Trimming, QC, alignment (Nextflow) | done |
-| Strandedness check | done |
-| rMATS prep / post / stat | not yet written |
-| Read-length and layout checks | not yet written |
-| Single-end alignment | not yet written (`bin/star_align.sh` is paired-end only) |
+| Strandedness and read-length checks | done |
+| rMATS prep / post / stat (shared events, paired stats) | done, tested on a fixture |
+| Single-end samples | not yet supported (the workflow stops if `fastq_2` is empty) |
 | GPU alignment (NVIDIA Parabricks) | planned, to compare speed and concordance with the CPU run |
 | Variant calling, then AlphaGenome | later |
 

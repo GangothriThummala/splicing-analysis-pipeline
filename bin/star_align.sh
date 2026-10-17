@@ -20,6 +20,9 @@ IDX=$1 SAMPLE=$2 R1=$3 R2=$4 OUT=$5 THREADS=${6:-16}
 STAR=${STAR:-STAR}
 MISMATCH=${MISMATCH:---outFilterMismatchNoverReadLmax 0.04}
 mkdir -p "$OUT"
+# BAM sorting opens ~50 temporary files per thread; a 1024 soft limit (some tmux
+# servers) breaks runs above ~20 threads. Raise it to the hard limit.
+ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
 "$STAR" --version > "$OUT/star_version.txt"
 
 /usr/bin/time -v -o "$OUT/${SAMPLE}.time.txt" \

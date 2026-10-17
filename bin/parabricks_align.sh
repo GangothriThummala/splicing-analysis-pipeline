@@ -10,6 +10,7 @@
 #
 # Usage: parabricks_align.sh <index_dir> <genome.fa> <sample> <R1.fq.gz> <R2.fq.gz> <out_dir> [n_gpus]
 # GPUs: set CUDA_VISIBLE_DEVICES. The container is $PARABRICKS_SIF.
+# PB_EXTRA adds rna_fq2bam options (e.g. "--num-streams-per-gpu 4 --num-threads 12").
 set -euo pipefail
 IDX=$1 FASTA=$2 SAMPLE=$3 R1=$4 R2=$5 OUT=$6 NGPU=${7:-1}
 SIF=${PARABRICKS_SIF:?set PARABRICKS_SIF to the Parabricks container}
@@ -29,7 +30,7 @@ apptainer exec --nv --bind "$binds" "$SIF" pbrun rna_fq2bam \
   --output-dir "$(readlink -f "$OUT")" --out-prefix "${SAMPLE}." \
   --out-bam "$(readlink -f "$OUT")/${SAMPLE}.Aligned.sortedByCoord.out.bam" \
   --tmp-dir "$(readlink -f "$OUT")/tmp" \
-  --num-gpus "$NGPU" --gpusort --gpuwrite \
+  --num-gpus "$NGPU" --gpusort --gpuwrite ${PB_EXTRA:-} \
   --no-markdups \
   --two-pass-mode Basic \
   --out-sam-attributes NH HI AS nM MD \

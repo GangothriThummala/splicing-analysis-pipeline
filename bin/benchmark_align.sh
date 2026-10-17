@@ -68,12 +68,12 @@ for r in csv.DictReader(open(sys.argv[1])):
 done
 
 # 2. CPU arms.
-cpu_one() {  # arm star index sample
+cpu_one() {  # arm star index sample; runs under xargs bash -c, so no set -e: check exits
     local d=$OUT/$1/$4 st en
     done_bam "$d/$4" && return 0
     st=$(date +%s)
     STAR=$2 "$BIN/star_align.sh" "$3" "$4" "$T/${4}_R1.fq.gz" "$T/${4}_R2.fq.gz" "$d" "$CPU_THREADS" \
-        > "$OUT/$1.$4.log" 2>&1
+        > "$OUT/$1.$4.log" 2>&1 || { echo "FAILED $1 $4 (see $OUT/$1.$4.log)" >&2; return 1; }
     en=$(date +%s); record "$1" "$4" "$st" "$en" "$d/$4.time.txt"
 }
 export -f cpu_one record secs rss done_bam

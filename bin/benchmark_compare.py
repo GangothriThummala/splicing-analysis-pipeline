@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Summarise an alignment benchmark (bin/benchmark_align.sh output).
 
-Per arm and sample: wall time, peak memory, uniquely mapped %. Against the first
-arm in timing.tsv (the reference): uniquely mapped reads, splice junctions (from
+Per arm and sample: wall time, peak memory, uniquely mapped %. Against the
+reference arm (the first CPU arm in timing.tsv, else the first arm): uniquely mapped reads, splice junctions (from
 SJ.out.tab, junctions with >= 5 unique reads; Jaccard index and the fraction of
 reference junctions found), and the Pearson correlation of log gene counts
 (ReadsPerGene column 2, unstranded).
@@ -44,7 +44,8 @@ def pearson(a, b):
 def main(out):
     rows = list(csv.DictReader(open(os.path.join(out, "timing.tsv")), delimiter="\t"))
     arms = list(dict.fromkeys(r["arm"] for r in rows))
-    ref = arms[0]
+    ref = next((a for a in arms if a.startswith("cpu")), arms[0])
+    arms = [ref] + [a for a in arms if a != ref]
     files = lambda arm, s, suffix: os.path.join(out, arm, s, f"{s}.{suffix}")
 
     print(f"Reference arm: {ref}\n")

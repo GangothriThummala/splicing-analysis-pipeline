@@ -5,8 +5,9 @@ events. It is set up for four macaque (*Macaca mulatta*) viral-infection dataset
 SARS-CoV-2, H5N1, mpox; H5N1 includes cynomolgus). It works on any dataset through config
 files, with no script edits per dataset.
 
-> **Status: under construction.** The Nextflow workflow runs from raw reads to rMATS
-> results. It has been tested on a small fixture; full dataset runs are next. See [Status](#status).
+> **Status: under construction.** The Nextflow workflow runs from raw reads to filtered
+> rMATS results. It has been run on the full H5N1 dataset (47 samples); the other datasets
+> are next. See [Status](#status).
 
 ## Why this exists
 An earlier pipeline for these datasets was hand-edited for each dataset and silently lost
@@ -167,10 +168,10 @@ junctions are identical to the workflow's.
 | STAR index build (`bin/build_star_index.sh`) | done |
 | Trimming, QC, alignment (Nextflow) | done |
 | Strandedness and read-length checks | done |
-| rMATS prep / post / stat (shared events, paired stats) | done, tested on a fixture |
-| Event filter and FDR recomputation | done, tested on a fixture |
+| rMATS prep / post / stat (shared events, paired stats) | done, run on H5N1 |
+| Event filter and FDR recomputation | done, run on H5N1 |
 | Single-end samples | not yet supported (the workflow stops if `fastq_2` is empty) |
-| GPU alignment (NVIDIA Parabricks) | planned, to compare speed and concordance with the CPU run |
+| GPU alignment (NVIDIA Parabricks) | benchmarked on 1 GPU: same output as CPU STAR, but slower on our server, so alignment stays on CPU |
 | Variant calling, then AlphaGenome | later |
 
 ## Contributing

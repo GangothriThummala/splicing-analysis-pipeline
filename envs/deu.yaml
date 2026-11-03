@@ -1,0 +1,16 @@
+name: deu
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  # pinned: these decide the results
+  - bioconductor-dexseq=1.56.0
+  - bioconductor-edger=4.10.7
+  - subread=2.1.1
+  # DEXSeq's dexseq_prepare_annotation.py (GTF flattening) needs HTSeq
+  - htseq=2.1.2
+  - r-base=4.5
+  - python=3.10
+  # utilities (exact versions recorded in deu.lock.yaml)
+  - bioconductor-biocparallel
